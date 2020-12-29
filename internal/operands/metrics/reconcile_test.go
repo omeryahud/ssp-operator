@@ -61,8 +61,8 @@ var _ = Describe("Metrics operand", func() {
 			VersionCache: common.VersionCache{},
 		}
 
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		ExpectResourceExists(newPrometheusRule(namespace), request)
 	})
 })

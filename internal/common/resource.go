@@ -21,16 +21,18 @@ type ResourceStatus struct {
 
 type ReconcileFunc = func(*Request) (ResourceStatus, error)
 
-func CollectResourceStatus(request *Request, funcs ...ReconcileFunc) ([]ResourceStatus, error) {
-	res := make([]ResourceStatus, 0, len(funcs))
+func CollectResourceStatus(request *Request, funcs ...ReconcileFunc) ([]ResourceStatus, []error) {
+	statuses := make([]ResourceStatus, 0, len(funcs))
+	errs := make([]error, 0, len(funcs))
+
 	for _, f := range funcs {
 		status, err := f(request)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
 		}
-		res = append(res, status)
+		statuses = append(statuses, status)
 	}
-	return res, nil
+	return statuses, errs
 }
 
 type ResourceUpdateFunc = func(expected, found controllerutil.Object)

@@ -25,7 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	libhandler "github.com/operator-framework/operator-lib/handler"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -140,9 +140,23 @@ func (r *SSPReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	statuses, err := reconcileOperands(sspRequest)
+	// Mark existing CRs as paused
+	kinds := listExistingCRDKinds(sspRequest)
+	err = pauseCRs(sspRequest, kinds)
 	if err != nil {
-		return handleError(sspRequest, err)
+		return ctrl.Result{}, err
+	}
+
+	statuses, errs := reconcileOperands(sspRequest)
+
+	// Combine all errors to a single error message to be displayed on the CR
+	if len(errs) > 0 {
+		errMsg := ""
+		for _, e := range errs {
+			errMsg = fmt.Sprintf("%s;\n%s;", errMsg, e.Error())
+		}
+
+		return handleError(sspRequest, fmt.Errorf("%s", errMsg))
 	}
 
 	err = updateStatus(sspRequest, statuses)
@@ -268,26 +282,18 @@ func listExistingCRDKinds(sspRequest *common.Request) []string {
 	return foundKinds
 }
 
-func reconcileOperands(sspRequest *common.Request) ([]common.ResourceStatus, error) {
-	kinds := listExistingCRDKinds(sspRequest)
-
-	// Mark existing CRs as paused
-	err := pauseCRs(sspRequest, kinds)
-	if err != nil {
-		return nil, err
-	}
-
+func reconcileOperands(sspRequest *common.Request) ([]common.ResourceStatus, []error) {
 	// Reconcile all operands
-	allStatuses := make([]common.ResourceStatus, 0, len(sspOperands))
+	allStatuses := make([]common.ResourceStatus, 0)
+	allErrors := make([]error, 0)
+
 	for _, operand := range sspOperands {
-		statuses, err := operand.Reconcile(sspRequest)
-		if err != nil {
-			return nil, err
-		}
+		statuses, errs := operand.Reconcile(sspRequest)
 		allStatuses = append(allStatuses, statuses...)
+		allErrors = append(allErrors, errs...)
 	}
 
-	return allStatuses, nil
+	return allStatuses, allErrors
 }
 
 func preUpdateStatus(request *common.Request) error {

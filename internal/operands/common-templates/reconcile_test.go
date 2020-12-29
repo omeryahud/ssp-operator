@@ -72,13 +72,13 @@ var _ = Describe("Common-Templates operand", func() {
 	})
 
 	It("should create golden-images namespace", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		ExpectResourceExists(newGoldenImagesNS(GoldenImagesNSname), request)
 	})
 	It("should create common-template resources", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		Expect(templatesBundle).ToNot(BeNil())
 		for _, template := range templatesBundle {
 			template.Namespace = namespace
@@ -86,18 +86,18 @@ var _ = Describe("Common-Templates operand", func() {
 		}
 	})
 	It("should create view role", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		ExpectResourceExists(newViewRole(GoldenImagesNSname), request)
 	})
 	It("should create view role binding", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		ExpectResourceExists(newViewRoleBinding(GoldenImagesNSname), request)
 	})
 	It("should create view role binding", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 		ExpectResourceExists(newEditRole(), request)
 	})
 })

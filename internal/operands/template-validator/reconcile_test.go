@@ -73,8 +73,8 @@ var _ = Describe("Template validator operand", func() {
 	})
 
 	It("should create validator resources", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		ExpectResourceExists(newClusterRole(namespace), request)
 		ExpectResourceExists(newServiceAccount(namespace), request)
@@ -85,8 +85,8 @@ var _ = Describe("Template validator operand", func() {
 	})
 
 	It("should not update webhook CA bundle", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		key, err := client.ObjectKeyFromObject(newValidatingWebhook(namespace))
 		Expect(err).ToNot(HaveOccurred())
@@ -97,8 +97,8 @@ var _ = Describe("Template validator operand", func() {
 		webhook.Webhooks[0].ClientConfig.CABundle = []byte(testCaBundle)
 		Expect(request.Client.Update(request.Context, webhook)).ToNot(HaveOccurred())
 
-		_, err = operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs = operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		updatedWebhook := &admission.ValidatingWebhookConfiguration{}
 		Expect(request.Client.Get(request.Context, key, updatedWebhook)).ToNot(HaveOccurred())
@@ -106,8 +106,8 @@ var _ = Describe("Template validator operand", func() {
 	})
 
 	It("should not update service cluster IP", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		key, err := client.ObjectKeyFromObject(newService(namespace))
 		Expect(err).ToNot(HaveOccurred())
@@ -118,8 +118,8 @@ var _ = Describe("Template validator operand", func() {
 		service.Spec.ClusterIP = testClusterIp
 		Expect(request.Client.Update(request.Context, service)).ToNot(HaveOccurred())
 
-		_, err = operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs = operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		updatedService := &core.Service{}
 		Expect(request.Client.Get(request.Context, key, updatedService)).ToNot(HaveOccurred())
@@ -127,8 +127,8 @@ var _ = Describe("Template validator operand", func() {
 	})
 
 	It("should remove cluster resources on cleanup", func() {
-		_, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		_, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		ExpectResourceExists(newClusterRole(namespace), request)
 		ExpectResourceExists(newClusterRoleBinding(namespace), request)
@@ -142,8 +142,8 @@ var _ = Describe("Template validator operand", func() {
 	})
 
 	It("should report status", func() {
-		statuses, err := operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		statuses, errs := operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		// Set status for deployment
 		key, _ := client.ObjectKeyFromObject(newDeployment(namespace, replicas, "test-img"))
@@ -155,8 +155,8 @@ var _ = Describe("Template validator operand", func() {
 			deployment.Status.UnavailableReplicas = replicas
 		})
 
-		statuses, err = operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		statuses, errs = operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		// Only deployment should be progressing
 		for _, status := range statuses {
@@ -179,8 +179,8 @@ var _ = Describe("Template validator operand", func() {
 			deployment.Status.UnavailableReplicas = 0
 		})
 
-		statuses, err = operand.Reconcile(&request)
-		Expect(err).ToNot(HaveOccurred())
+		statuses, errs = operand.Reconcile(&request)
+		ExpectNoErrors(errs)
 
 		// All resources should be available
 		for _, status := range statuses {

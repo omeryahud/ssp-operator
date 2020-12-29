@@ -23,3 +23,7 @@ func ExpectResourceNotExists(resource controllerutil.Object, request common.Requ
 	Expect(err).To(HaveOccurred())
 	Expect(errors.IsNotFound(err)).To(BeTrue())
 }
+
+func ExpectNoErrors(errs []error, optionalDesc ...interface{}) {
+	Expect(errs).To(BeEmpty(), optionalDesc...)
+}

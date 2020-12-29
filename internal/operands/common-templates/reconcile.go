@@ -56,7 +56,7 @@ func (c *commonTemplates) WatchTypes() []runtime.Object {
 	return nil
 }
 
-func (c *commonTemplates) Reconcile(request *common.Request) ([]common.ResourceStatus, error) {
+func (c *commonTemplates) Reconcile(request *common.Request) ([]common.ResourceStatus, []error) {
 	funcs := []common.ReconcileFunc{
 		reconcileGoldenImagesNS,
 		reconcileViewRole,

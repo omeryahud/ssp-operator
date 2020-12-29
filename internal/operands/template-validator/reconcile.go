@@ -47,7 +47,7 @@ func (t *templateValidator) WatchClusterTypes() []runtime.Object {
 	}
 }
 
-func (t *templateValidator) Reconcile(request *common.Request) ([]common.ResourceStatus, error) {
+func (t *templateValidator) Reconcile(request *common.Request) ([]common.ResourceStatus, []error) {
 	return common.CollectResourceStatus(request,
 		reconcileClusterRole,
 		reconcileServiceAccount,

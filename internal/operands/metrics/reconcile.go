@@ -26,7 +26,7 @@ func (m *metrics) WatchClusterTypes() []runtime.Object {
 	return nil
 }
 
-func (m *metrics) Reconcile(request *common.Request) ([]common.ResourceStatus, error) {
+func (m *metrics) Reconcile(request *common.Request) ([]common.ResourceStatus, []error) {
 	return common.CollectResourceStatus(request,
 		reconcilePrometheusRule,
 	)

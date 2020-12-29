@@ -49,7 +49,7 @@ func (nl *nodeLabeller) WatchClusterTypes() []runtime.Object {
 	}
 }
 
-func (nl *nodeLabeller) Reconcile(request *common.Request) ([]common.ResourceStatus, error) {
+func (nl *nodeLabeller) Reconcile(request *common.Request) ([]common.ResourceStatus, []error) {
 	return common.CollectResourceStatus(request,
 		reconcileClusterRole,
 		reconcileServiceAccount,
