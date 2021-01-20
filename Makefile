@@ -55,7 +55,9 @@ functest: generate fmt vet manifests
 
 # Build manager binary
 manager: generate fmt vet
+	sed -i 's/latest/${IMG_TAG}/g' internal/version/version.go
 	go build -o bin/manager main.go
+	sed -i 's/${IMG_TAG}/latest/g' internal/version/version.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests

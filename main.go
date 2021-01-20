@@ -32,6 +32,7 @@ import (
 
 	sspv1beta1 "kubevirt.io/ssp-operator/api/v1beta1"
 	"kubevirt.io/ssp-operator/controllers"
+	ver "kubevirt.io/ssp-operator/internal/version"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -63,6 +64,8 @@ func init() {
 }
 
 func main() {
+	var versionFlag bool
+	flag.BoolVar(&versionFlag, "version", false, "Retrieve operator version")
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -70,6 +73,11 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
+
+	if versionFlag {
+		fmt.Println(fmt.Sprintf("Kubevirt SSP-Operator version %s", ver.Version))
+		os.Exit(0)
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 

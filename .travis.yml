@@ -10,6 +10,12 @@ jobs:
     name: Test csv-generator
     script: make container-build && ./tests/e2e-test-csv-generator.sh
 
+  - stage: Test operator version flag
+    name: Test operator version flag
+    script: |
+      IMG_TAG="${TRAVIS_TAG}" make manager
+      IMG_TAG="${TRAVIS_TAG}" ./tests/test-operator-version-flag.sh
+
   - stage: Release
     name: Release to GitHub
     if: tag IS present
