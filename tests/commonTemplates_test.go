@@ -16,9 +16,9 @@ import (
 	core "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"kubevirt.io/ssp-operator/internal/common"
 	commonTemplates "kubevirt.io/ssp-operator/internal/operands/common-templates"
 )
 
@@ -32,12 +32,10 @@ var _ = Describe("Common templates", func() {
 	)
 
 	BeforeEach(func() {
-		expectedLabels := expectedLabelsFor("common-templates", common.AppComponentTemplating)
 		viewRole = testResource{
-			Name:           commonTemplates.ViewRoleName,
-			Namespace:      commonTemplates.GoldenImagesNSname,
-			Resource:       &rbac.Role{},
-			ExpectedLabels: expectedLabels,
+			Name:      commonTemplates.ViewRoleName,
+			Namespace: commonTemplates.GoldenImagesNSname,
+			Resource:  &rbac.Role{},
 			UpdateFunc: func(role *rbac.Role) {
 				role.Rules = []rbac.PolicyRule{}
 			},
@@ -46,10 +44,9 @@ var _ = Describe("Common templates", func() {
 			},
 		}
 		viewRoleBinding = testResource{
-			Name:           commonTemplates.ViewRoleName,
-			Namespace:      commonTemplates.GoldenImagesNSname,
-			Resource:       &rbac.RoleBinding{},
-			ExpectedLabels: expectedLabels,
+			Name:      commonTemplates.ViewRoleName,
+			Namespace: commonTemplates.GoldenImagesNSname,
+			Resource:  &rbac.RoleBinding{},
 			UpdateFunc: func(roleBinding *rbac.RoleBinding) {
 				roleBinding.Subjects = nil
 			},
@@ -58,10 +55,9 @@ var _ = Describe("Common templates", func() {
 			},
 		}
 		editClusterRole = testResource{
-			Name:           commonTemplates.EditClusterRoleName,
-			Resource:       &rbac.ClusterRole{},
-			ExpectedLabels: expectedLabels,
-			Namespace:      "",
+			Name:      commonTemplates.EditClusterRoleName,
+			Resource:  &rbac.ClusterRole{},
+			Namespace: "",
 			UpdateFunc: func(role *rbac.ClusterRole) {
 				role.Rules[0].Verbs = []string{"watch"}
 			},
@@ -70,16 +66,14 @@ var _ = Describe("Common templates", func() {
 			},
 		}
 		goldenImageNS = testResource{
-			Name:           commonTemplates.GoldenImagesNSname,
-			Resource:       &core.Namespace{},
-			ExpectedLabels: expectedLabels,
-			Namespace:      "",
+			Name:      commonTemplates.GoldenImagesNSname,
+			Resource:  &core.Namespace{},
+			Namespace: "",
 		}
 		testTemplate = testResource{
-			Name:           "rhel8-desktop-tiny",
-			Namespace:      strategy.GetTemplatesNamespace(),
-			Resource:       &templatev1.Template{},
-			ExpectedLabels: expectedLabels,
+			Name:      "rhel8-desktop-tiny",
+			Namespace: strategy.GetTemplatesNamespace(),
+			Resource:  &templatev1.Template{},
 			UpdateFunc: func(t *templatev1.Template) {
 				t.Parameters = nil
 			},
@@ -197,14 +191,6 @@ var _ = Describe("Common templates", func() {
 				}
 			}
 		})
-
-		table.DescribeTable("should set app labels", expectAppLabels,
-			table.Entry("edit role", &editClusterRole),
-			table.Entry("golden images namespace", &goldenImageNS),
-			table.Entry("view role", &viewRole),
-			table.Entry("view role binding", &viewRoleBinding),
-			table.Entry("common-template in custom NS", &testTemplate),
-		)
 	})
 
 	Context("resource change", func() {
@@ -231,14 +217,6 @@ var _ = Describe("Common templates", func() {
 				table.Entry("[test_id:5393]edit cluster role", &editClusterRole),
 			)
 		})
-
-		table.DescribeTable("should restore app labels", expectAppLabelsRestoreAfterUpdate,
-			table.Entry("edit role", &editClusterRole),
-			table.Entry("golden images namespace", &goldenImageNS),
-			table.Entry("view role", &viewRole),
-			table.Entry("view role binding", &viewRoleBinding),
-			table.Entry("common-template in custom NS", &testTemplate),
-		)
 	})
 
 	Context("resource deletion", func() {
@@ -262,7 +240,7 @@ var _ = Describe("Common templates", func() {
 			// might be deployed in a different namespace than the CR, and will be immediately
 			// removed by the GC, the choice to use a template as an owner object was arbitrary
 			ownerTemplate = &templatev1.Template{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: v1.ObjectMeta{
 					Name:      "owner-template",
 					Namespace: strategy.GetTemplatesNamespace(),
 				},
@@ -270,7 +248,7 @@ var _ = Describe("Common templates", func() {
 			Expect(apiClient.Create(ctx, ownerTemplate)).ToNot(HaveOccurred(), "failed to create dummy owner for an old template")
 
 			oldTemplate = &templatev1.Template{
-				ObjectMeta: metav1.ObjectMeta{
+				ObjectMeta: v1.ObjectMeta{
 					Name:      "test-old-template",
 					Namespace: strategy.GetTemplatesNamespace(),
 					Labels: map[string]string{
@@ -280,7 +258,7 @@ var _ = Describe("Common templates", func() {
 						"flavor.template.kubevirt.io/test":     "true",
 						"workload.template.kubevirt.io/server": "true",
 					},
-					OwnerReferences: []metav1.OwnerReference{{
+					OwnerReferences: []v1.OwnerReference{{
 						APIVersion: "template.openshift.io/v1",
 						Kind:       "Template",
 						Name:       ownerTemplate.Name,
@@ -372,7 +350,7 @@ var _ = Describe("Common templates", func() {
 						Namespace: strategy.GetNamespace(),
 					},
 				}
-				regularSAFullName = fmt.Sprintf("system:serviceaccount:%s:%s", regularSA.GetNamespace(), regularSA.GetName())
+				regularSAFullName = fmt.Sprintf("serviceaccount:%s:%s", regularSA.GetNamespace(), regularSA.GetName())
 
 				Expect(apiClient.Create(ctx, regularSA)).ToNot(HaveOccurred(), "creation of regular service account failed")
 				Expect(apiClient.Get(ctx, getResourceKey(regularSA), regularSA)).ToNot(HaveOccurred())
@@ -453,202 +431,7 @@ var _ = Describe("Common templates", func() {
 							Version:   "v1beta1",
 							Resource:  "datavolumes",
 						},
-					}),
-				table.Entry("[test_id:5005]: ServiceAccounts with only view role can create dv/source",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:        "create",
-							Namespace:   commonTemplates.GoldenImagesNSname,
-							Group:       "cdi.kubevirt.io",
-							Version:     "v1beta1",
-							Resource:    "datavolumes",
-							Subresource: "source",
-						},
-					}),
-			)
-
-			table.DescribeTable("regular service account DV RBAC", expectUserCannot,
-				table.Entry("[test_id:4873]: ServiceAccounts with only view role cannot delete DVs",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "delete",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Group:     "cdi.kubevirt.io",
-							Version:   "v1beta1",
-							Resource:  "datavolumes",
-						},
-					}),
-				table.Entry("[test_id:4874]: ServiceAccounts with only view role cannot create DVs",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "create",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Group:     "cdi.kubevirt.io",
-							Version:   "v1beta1",
-							Resource:  "datavolumes",
-						},
-					}),
-			)
-			table.DescribeTable("regular service account PVC RBAC", expectUserCan,
-				table.Entry("[test_id:4775]: ServiceAccounts with view role can view PVCs",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "get",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Version:   "v1",
-							Resource:  "persistentvolumeclaims",
-						},
 					}))
-			table.DescribeTable("regular service account RBAC", expectUserCannot,
-				table.Entry("[test_id:4776]: ServiceAccounts with only view role cannot create PVCs",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "create",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Version:   "v1",
-							Resource:  "persistentvolumeclaims",
-						},
-					}),
-				table.Entry("[test_id:4846]: ServiceAccounts with only view role cannot delete PVCs",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "delete",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Version:   "v1",
-							Resource:  "persistentvolumeclaims",
-						},
-					}),
-				table.Entry("[test_id:4879]: ServiceAccounts with only view role cannot create any other resources other than the ones listed in the View role",
-					&authv1.SubjectAccessReviewSpec{
-						User:   regularSAFullName,
-						Groups: sasGroup,
-						ResourceAttributes: &authv1.ResourceAttributes{
-							Verb:      "create",
-							Namespace: commonTemplates.GoldenImagesNSname,
-							Version:   "v1",
-							Resource:  "pods",
-						},
-					}),
-			)
-			Context("With Edit permission", func() {
-				var (
-					privilegedSA         *core.ServiceAccount
-					privilegedSAName     = "privileged-sa"
-					privilegedSAFullName string
-				)
-				BeforeEach(func() {
-					privilegedSA = &core.ServiceAccount{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      privilegedSAName,
-							Namespace: strategy.GetNamespace(),
-						},
-					}
-					Expect(apiClient.Create(ctx, privilegedSA)).ToNot(HaveOccurred(), "creation of regular service account failed")
-					Expect(apiClient.Get(ctx, getResourceKey(privilegedSA), privilegedSA)).ToNot(HaveOccurred())
-					privilegedSAFullName = fmt.Sprintf("system:serviceaccount:%s:%s", strategy.GetNamespace(), privilegedSAName)
-
-					editObj := &rbac.RoleBinding{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-edit",
-							Namespace: commonTemplates.GoldenImagesNSname,
-						},
-						Subjects: []rbac.Subject{
-							{
-								Kind:      "ServiceAccount",
-								Name:      privilegedSAName,
-								Namespace: strategy.GetNamespace(),
-							},
-						},
-						RoleRef: rbac.RoleRef{
-							Kind:     "ClusterRole",
-							Name:     commonTemplates.EditClusterRoleName,
-							APIGroup: "rbac.authorization.k8s.io",
-						},
-					}
-					Expect(apiClient.Create(ctx, editObj)).ToNot(HaveOccurred(), "Failed to create RoleBinding")
-				})
-				AfterEach(func() {
-					editObj := &rbac.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "test-edit", Namespace: commonTemplates.GoldenImagesNSname}}
-					Expect(apiClient.Delete(ctx, editObj)).ToNot(HaveOccurred())
-					Expect(apiClient.Delete(ctx, privilegedSA)).NotTo(HaveOccurred())
-				})
-				table.DescribeTable("should verify resource permissions", func(sars *authv1.SubjectAccessReviewSpec) {
-					// Because privilegedSAFullName is filled after test Tree generation
-					sars.User = privilegedSAFullName
-					expectUserCan(sars)
-				},
-					table.Entry("[test_id:4774]: ServiceAcounts with edit role can create PVCs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "create",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Version:   "v1",
-								Resource:  "persistentvolumeclaims",
-							},
-						}),
-					table.Entry("[test_id:4845]: ServiceAcounts with edit role can delete PVCs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "delete",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Version:   "v1",
-								Resource:  "persistentvolumeclaims",
-							},
-						}),
-					table.Entry("[test_id:4877]: ServiceAccounts with edit role can view DVs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "get",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Group:     "cdi.kubevirt.io",
-								Version:   "v1beta1",
-								Resource:  "datavolumes",
-							},
-						}),
-					table.Entry("[test_id:4872]: ServiceAccounts with edit role can create DVs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "create",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Group:     "cdi.kubevirt.io",
-								Version:   "v1beta1",
-								Resource:  "datavolumes",
-							},
-						}),
-					table.Entry("[test_id:4876]: ServiceAccounts with edit role can delete DVs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "delete",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Group:     "cdi.kubevirt.io",
-								Version:   "v1beta1",
-								Resource:  "datavolumes",
-							},
-						}),
-					table.Entry("[test_id:4876]: ServiceAccounts with edit role can delete DVs",
-						&authv1.SubjectAccessReviewSpec{
-							ResourceAttributes: &authv1.ResourceAttributes{
-								Verb:      "delete",
-								Namespace: commonTemplates.GoldenImagesNSname,
-								Group:     "cdi.kubevirt.io",
-								Version:   "v1beta1",
-								Resource:  "datavolumes",
-							},
-						}),
-				)
-			})
 		})
 	})
 })

@@ -2,9 +2,6 @@ package tests
 
 import (
 	"fmt"
-	"reflect"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -12,11 +9,13 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
 	cpunfd "kubevirt.io/cpu-nfd-plugin/pkg/config"
-	"kubevirt.io/ssp-operator/internal/common"
 	nodelabeller "kubevirt.io/ssp-operator/internal/operands/node-labeller"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 var _ = Describe("Node Labeller", func() {
@@ -30,12 +29,10 @@ var _ = Describe("Node Labeller", func() {
 	)
 
 	BeforeEach(func() {
-		expectedLabels := expectedLabelsFor("node-labeler", common.AppComponentSchedule)
 		clusterRoleRes = testResource{
-			Name:           nodelabeller.ClusterRoleName,
-			Resource:       &rbac.ClusterRole{},
-			Namespace:      "",
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.ClusterRoleName,
+			Resource:  &rbac.ClusterRole{},
+			Namespace: "",
 			UpdateFunc: func(role *rbac.ClusterRole) {
 				role.Rules[0].Verbs = []string{"watch"}
 			},
@@ -44,10 +41,9 @@ var _ = Describe("Node Labeller", func() {
 			},
 		}
 		clusterRoleBindingRes = testResource{
-			Name:           nodelabeller.ClusterRoleBindingName,
-			Resource:       &rbac.ClusterRoleBinding{},
-			Namespace:      "",
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.ClusterRoleBindingName,
+			Resource:  &rbac.ClusterRoleBinding{},
+			Namespace: "",
 			UpdateFunc: func(roleBinding *rbac.ClusterRoleBinding) {
 				roleBinding.Subjects = nil
 			},
@@ -56,16 +52,14 @@ var _ = Describe("Node Labeller", func() {
 			},
 		}
 		serviceAccountRes = testResource{
-			Name:           nodelabeller.ServiceAccountName,
-			Namespace:      strategy.GetNamespace(),
-			Resource:       &core.ServiceAccount{},
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.ServiceAccountName,
+			Namespace: strategy.GetNamespace(),
+			Resource:  &core.ServiceAccount{},
 		}
 		securityContextConstraintRes = testResource{
-			Name:           nodelabeller.SecurityContextName,
-			Namespace:      "",
-			Resource:       &secv1.SecurityContextConstraints{},
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.SecurityContextName,
+			Namespace: "",
+			Resource:  &secv1.SecurityContextConstraints{},
 			UpdateFunc: func(scc *secv1.SecurityContextConstraints) {
 				scc.Users = []string{"test-user"}
 			},
@@ -74,10 +68,9 @@ var _ = Describe("Node Labeller", func() {
 			},
 		}
 		configMapRes = testResource{
-			Name:           nodelabeller.ConfigMapName,
-			Namespace:      strategy.GetNamespace(),
-			Resource:       &core.ConfigMap{},
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.ConfigMapName,
+			Namespace: strategy.GetNamespace(),
+			Resource:  &core.ConfigMap{},
 			UpdateFunc: func(configMap *core.ConfigMap) {
 				configMap.Data = map[string]string{
 					"cpu-plugin-configmap.yaml": "change data",
@@ -88,10 +81,9 @@ var _ = Describe("Node Labeller", func() {
 			},
 		}
 		daemonSetRes = testResource{
-			Name:           nodelabeller.DaemonSetName,
-			Namespace:      strategy.GetNamespace(),
-			Resource:       &apps.DaemonSet{},
-			ExpectedLabels: expectedLabels,
+			Name:      nodelabeller.DaemonSetName,
+			Namespace: strategy.GetNamespace(),
+			Resource:  &apps.DaemonSet{},
 			UpdateFunc: func(daemonSet *apps.DaemonSet) {
 				daemonSet.Spec.Template.Spec.ServiceAccountName = "test-account"
 			},
@@ -122,14 +114,6 @@ var _ = Describe("Node Labeller", func() {
 			table.Entry("[test_id:5205] service account", &serviceAccountRes),
 			table.Entry("[test_id:5199] configMap", &configMapRes),
 			table.Entry("[test_id:5190] daemonSet", &daemonSetRes),
-		)
-
-		table.DescribeTable("should set app labels", expectAppLabels,
-			table.Entry("cluster role", &clusterRoleRes),
-			table.Entry("cluster role binding", &clusterRoleBindingRes),
-			table.Entry("security context constraint", &securityContextConstraintRes),
-			table.Entry("Config Map", &configMapRes),
-			table.Entry("daemonSet", &daemonSetRes),
 		)
 	})
 
@@ -170,14 +154,6 @@ var _ = Describe("Node Labeller", func() {
 				table.Entry("[test_id:5410] daemonSet", &daemonSetRes),
 			)
 		})
-
-		table.DescribeTable("should restore modified app labels", expectAppLabelsRestoreAfterUpdate,
-			table.Entry("cluster role", &clusterRoleRes),
-			table.Entry("cluster role binding", &clusterRoleBindingRes),
-			table.Entry("security context constraint", &securityContextConstraintRes),
-			table.Entry("Config Map", &configMapRes),
-			table.Entry("daemonSet", &daemonSetRes),
-		)
 	})
 
 	It("all pods should be ready when deployed", func() {
@@ -188,7 +164,7 @@ var _ = Describe("Node Labeller", func() {
 
 	Context("cpu-nfd-plugin", func() {
 		It("should not set deprecated cpu labels on nodes", func() {
-			cpuConfigCM := &core.ConfigMap{}
+			cpuConfigCM := &v1.ConfigMap{}
 			Expect(apiClient.Get(ctx, client.ObjectKey{
 				Namespace: strategy.GetNamespace(),
 				Name:      nodelabeller.ConfigMapName,
@@ -198,7 +174,7 @@ var _ = Describe("Node Labeller", func() {
 			cpuConfig := &cpunfd.Config{}
 			Expect(yaml.Unmarshal([]byte(data), cpuConfig)).ToNot(HaveOccurred())
 
-			nodes := &core.NodeList{}
+			nodes := &v1.NodeList{}
 			Expect(apiClient.List(ctx, nodes)).ToNot(HaveOccurred(), "failed to list nodes")
 			Expect(len(nodes.Items)).To(BeNumerically(">", 0), "no nodes found")
 
