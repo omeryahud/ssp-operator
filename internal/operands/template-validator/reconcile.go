@@ -28,7 +28,7 @@ import (
 type templateValidator struct{}
 
 func (t *templateValidator) Name() string {
-	return operandName
+	return "TemplateValidator"
 }
 
 func (t *templateValidator) AddWatchTypesToScheme(*runtime.Scheme) error {
@@ -83,14 +83,9 @@ func GetOperand() operands.Operand {
 	return &templateValidator{}
 }
 
-const (
-	operandName      = "template-validator"
-	operandComponent = common.AppComponentTemplating
-)
-
 func reconcileClusterRole(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateClusterResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newClusterRole()),
+		newClusterRole(),
 		func(newRes, foundRes controllerutil.Object) {
 			foundRes.(*rbac.ClusterRole).Rules = newRes.(*rbac.ClusterRole).Rules
 		})
@@ -98,13 +93,13 @@ func reconcileClusterRole(request *common.Request) (common.ResourceStatus, error
 
 func reconcileServiceAccount(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newServiceAccount(request.Namespace)),
+		newServiceAccount(request.Namespace),
 		func(_, _ controllerutil.Object) {})
 }
 
 func reconcileClusterRoleBinding(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateClusterResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newClusterRoleBinding(request.Namespace)),
+		newClusterRoleBinding(request.Namespace),
 		func(newRes, foundRes controllerutil.Object) {
 			newBinding := newRes.(*rbac.ClusterRoleBinding)
 			foundBinding := foundRes.(*rbac.ClusterRoleBinding)
@@ -115,7 +110,7 @@ func reconcileClusterRoleBinding(request *common.Request) (common.ResourceStatus
 
 func reconcileService(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newService(request.Namespace)),
+		newService(request.Namespace),
 		func(newRes, foundRes controllerutil.Object) {
 			newService := newRes.(*v1.Service)
 			foundService := foundRes.(*v1.Service)
@@ -133,7 +128,7 @@ func reconcileDeployment(request *common.Request) (common.ResourceStatus, error)
 	deployment := newDeployment(request.Namespace, *validatorSpec.Replicas, image)
 	addPlacementFields(deployment, validatorSpec.Placement)
 	return common.CreateOrUpdateResourceWithStatus(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, deployment),
+		deployment,
 		func(newRes, foundRes controllerutil.Object) {
 			foundRes.(*apps.Deployment).Spec = newRes.(*apps.Deployment).Spec
 		},
@@ -170,7 +165,7 @@ func addPlacementFields(deployment *apps.Deployment, nodePlacement *lifecycleapi
 
 func reconcileValidatingWebhook(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateClusterResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newValidatingWebhook(request.Namespace)),
+		newValidatingWebhook(request.Namespace),
 		func(newRes, foundRes controllerutil.Object) {
 			newWebhookConf := newRes.(*admission.ValidatingWebhookConfiguration)
 			foundWebhookConf := foundRes.(*admission.ValidatingWebhookConfiguration)
