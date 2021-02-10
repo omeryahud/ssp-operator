@@ -27,6 +27,8 @@ type testResource struct {
 	Namespace string
 	Resource  controllerutil.Object
 
+	ExpectedLabels map[string]string
+
 	UpdateFunc interface{}
 	EqualsFunc interface{}
 }
@@ -216,6 +218,19 @@ func expectUserCan(sars *authv1.SubjectAccessReviewSpec) {
 	ExpectWithOffset(1, err).ToNot(HaveOccurred())
 	ExpectWithOffset(1, sar.Status.Allowed).To(BeTrue(),
 		fmt.Sprintf("user [%s] with groups %v cannot [%s] resource: [%s], subresource: [%s], name: [%s] in group [%s/%s] in namespace [%s]",
+			sars.User, sars.Groups, sars.ResourceAttributes.Verb, sars.ResourceAttributes.Resource,
+			sars.ResourceAttributes.Subresource, sars.ResourceAttributes.Name, sars.ResourceAttributes.Group,
+			sars.ResourceAttributes.Version, sars.ResourceAttributes.Namespace))
+}
+
+func expectUserCannot(sars *authv1.SubjectAccessReviewSpec) {
+	sar, err := coreClient.AuthorizationV1().SubjectAccessReviews().Create(ctx, &authv1.SubjectAccessReview{
+		Spec: *sars,
+	}, metav1.CreateOptions{})
+	ExpectWithOffset(1, err).ToNot(HaveOccurred())
+	// Cannot assert Status.Denied here because it is optional and can be flaky even if Allowed is false
+	ExpectWithOffset(1, sar.Status.Allowed).To(BeFalse(),
+		fmt.Sprintf("user [%s] with groups %v should not be able to [%s] resource: [%s], subresource: [%s], name: [%s] in group [%s/%s] in namespace [%s]",
 			sars.User, sars.Groups, sars.ResourceAttributes.Verb, sars.ResourceAttributes.Resource,
 			sars.ResourceAttributes.Subresource, sars.ResourceAttributes.Name, sars.ResourceAttributes.Group,
 			sars.ResourceAttributes.Version, sars.ResourceAttributes.Namespace))
