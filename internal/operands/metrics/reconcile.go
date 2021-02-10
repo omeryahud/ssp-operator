@@ -15,7 +15,7 @@ import (
 type metrics struct{}
 
 func (m *metrics) Name() string {
-	return operandName
+	return "Metrics"
 }
 
 func (m *metrics) AddWatchTypesToScheme(scheme *runtime.Scheme) error {
@@ -46,14 +46,9 @@ func GetOperand() operands.Operand {
 	return &metrics{}
 }
 
-const (
-	operandName      = "metrics"
-	operandComponent = common.AppComponentMonitoring
-)
-
 func reconcilePrometheusRule(request *common.Request) (common.ResourceStatus, error) {
 	return common.CreateOrUpdateResource(request,
-		common.AddAppLabels(request.Instance, operandName, operandComponent, newPrometheusRule(request.Namespace)),
+		newPrometheusRule(request.Namespace),
 		func(newRes, foundRes controllerutil.Object) {
 			foundRes.(*promv1.PrometheusRule).Spec = newRes.(*promv1.PrometheusRule).Spec
 		})
